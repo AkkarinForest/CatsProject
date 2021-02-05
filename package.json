@@ -1,0 +1,22 @@
+{
+  "name": "catsproject",
+  "version": "1.0.0",
+  "main": "app.js",
+  "dependencies": {
+    "elm": "^0.19.1-5",
+    "elm-live": "^4.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AkkarinForest/CatsProject.git"
+  },
+  "author": "AkkarinForest",
+  "engines": {
+    "node": "14.15.4"
+  }
+}
