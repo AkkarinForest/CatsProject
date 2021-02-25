@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Main exposing (catsDecoder, main)
 
 import Browser
 import Html exposing (..)
