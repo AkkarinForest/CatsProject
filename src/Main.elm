@@ -4,7 +4,6 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import HttpUtils exposing (get)
 import Json.Decode as Json
 import Json.Decode.Pipeline as Json
 import RemoteData exposing (RemoteData(..), WebData)
