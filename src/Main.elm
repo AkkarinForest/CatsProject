@@ -4,11 +4,11 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
-import Http
 import HttpUtils exposing (get)
 import Json.Decode as Json
 import Json.Decode.Pipeline as Json
 import RemoteData exposing (RemoteData(..), WebData)
+import RemoteData.Http as Http
 
 
 apiKey : String
@@ -40,16 +40,15 @@ type alias CatsData =
 
 initialModel : Model
 initialModel =
-    { catsData = Loading }
+    { catsData = NotAsked }
 
 
 initialCmd : Cmd Msg
 initialCmd =
-    HttpUtils.get
-        { url = "https://api.thecatapi.com/v1/breeds?limit=5"
-        , headers = [ Http.header "api_key" apiKey ]
-        , expect = Http.expectJson (RemoteData.fromResult >> GotPhotos) (Json.list catsDecoder)
-        }
+    Http.get
+        "https://api.thecatapi.com/v1/breeds?limit=5"
+        GotPhotos
+        (Json.list catsDecoder)
 
 
 catsDecoder : Json.Decoder CatsData
