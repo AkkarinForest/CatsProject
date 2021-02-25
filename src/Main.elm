@@ -5,9 +5,10 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Http
-import HttpUtils
+import HttpUtils exposing (get)
 import Json.Decode as Json
 import Json.Decode.Pipeline as Json
+import RemoteData exposing (RemoteData(..), WebData)
 
 
 apiKey : String
@@ -22,13 +23,7 @@ apiKey =
 
 
 type alias Model =
-    { status : Status }
-
-
-type Status
-    = Loading
-    | Loaded (List CatsData)
-    | Errored String
+    { catsData : WebData (List CatsData) }
 
 
 type alias CatsData =
@@ -45,7 +40,7 @@ type alias CatsData =
 
 initialModel : Model
 initialModel =
-    { status = Loading }
+    { catsData = Loading }
 
 
 initialCmd : Cmd Msg
@@ -53,7 +48,7 @@ initialCmd =
     HttpUtils.get
         { url = "https://api.thecatapi.com/v1/breeds?limit=5"
         , headers = [ Http.header "api_key" apiKey ]
-        , expect = Http.expectJson GotPhotos (Json.list catsDecoder)
+        , expect = Http.expectJson (RemoteData.fromResult >> GotPhotos) (Json.list catsDecoder)
         }
 
 
@@ -72,41 +67,47 @@ catsDecoder =
 
 type Msg
     = ClickedReload
-    | GotPhotos (Result Http.Error (List CatsData))
+    | GotPhotos (WebData (List CatsData))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedReload ->
-            case model.status of
-                Loaded (_ :: _) ->
+            case model.catsData of
+                NotAsked ->
                     ( model, Cmd.none )
 
-                Loaded [] ->
+                Success (_ :: _) ->
+                    ( model, Cmd.none )
+
+                Success [] ->
                     ( model, Cmd.none )
 
                 Loading ->
                     ( model, Cmd.none )
 
-                Errored errorMessage ->
-                    ( { model | status = Errored ("Reload Error:" ++ errorMessage) }, Cmd.none )
+                Failure errorMessage ->
+                    ( model, Cmd.none )
 
-        GotPhotos (Ok photos) ->
-            case photos of
-                _ :: _ ->
-                    ( { model | status = Loaded photos }
-                    , Cmd.none
-                    )
-
-                [] ->
-                    ( { model | status = Errored "0 photos found" }, Cmd.none )
-
-        GotPhotos (Err httpError) ->
-            ( { model | status = Errored "Cats api error" }, Cmd.none )
+        -- ( { model | catsData = Failure ("Reload Error:" ++ errorMessage) }, Cmd.none )
+        GotPhotos response ->
+            ( { model | catsData = response }
+            , Cmd.none
+            )
 
 
 
+-- case photos of
+--     _ :: _ ->
+--         ( { model | catsData = Loaded photos }
+--         , Cmd.none
+--         )
+--
+--     [] ->
+--         ( { model | catsData = Failure "0 photos found" }, Cmd.none )
+-- GotPhotos (Err httpError) ->
+--     ( { model | catsData = Failure "Cats api error" }, Cmd.none )
 -- ↑
 -- ########   VIEW   ########
 -- ↓
@@ -115,15 +116,22 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div [ class "content" ] <|
-        case model.status of
-            Loaded photos ->
+        case model.catsData of
+            Success photos ->
                 viewLoaded photos
+
+            NotAsked ->
+                []
 
             Loading ->
                 []
 
-            Errored errorMessage ->
-                [ text ("Error: " ++ errorMessage) ]
+            Failure errorMessage ->
+                [ text "Error: " ]
+
+
+
+-- [ text ("Error: " + errorMessage) ]
 
 
 viewLoaded : List CatsData -> List (Html Msg)
