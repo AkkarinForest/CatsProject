@@ -11,11 +11,6 @@ import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as Http
 
 
-apiKey : String
-apiKey =
-    "5e60a90e-2488-47d0-869e-f4cbbb6cbfc0"
-
-
 
 -- ↑
 -- ########   MODEL  ########
