@@ -1,7 +1,8 @@
 module Main exposing (catsDecoder, main)
 
-import Browser
-import Html exposing (..)
+import Browser exposing (Document)
+import Element as UI
+import Html exposing (Html, button, div, h1, img, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Json.Decode as Json
@@ -106,21 +107,46 @@ update msg model =
 -- ↓
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
-    div [ class "content" ] <|
-        case model.catsData of
-            Success photos ->
-                viewLoaded photos
+    { title = "Cat's Breeds"
+    , body = [ body ]
+    }
 
-            NotAsked ->
-                []
 
-            Loading ->
-                []
+body =
+    UI.layout [] <|
+        UI.column []
+            [ header, page ]
 
-            Failure errorMessage ->
-                [ text "Error: " ]
+
+header : UI.Element msg
+header =
+    UI.text "Cats 😻"
+
+
+page : UI.Element msg
+page =
+    UI.el [] UI.none
+
+
+body2 model =
+    div []
+        [ h1 [] [ text "Cats 😻" ]
+        , div [ class "content" ] <|
+            case model.catsData of
+                Success photos ->
+                    viewLoaded photos
+
+                NotAsked ->
+                    []
+
+                Loading ->
+                    []
+
+                Failure errorMessage ->
+                    [ text "Error: " ]
+        ]
 
 
 
@@ -129,8 +155,7 @@ view model =
 
 viewLoaded : List CatsData -> List (Html Msg)
 viewLoaded catsData =
-    [ h1 [] [ text "Cats 😻" ]
-    , button
+    [ button
         [ onClick ClickedReload ]
         [ text "New Game" ]
     , div [ id "thumbnails", class "med" ]
@@ -161,7 +186,7 @@ viewCatsBreed catsData =
 
 main : Program () Model Msg
 main =
-    Browser.element
+    Browser.document
         { init = \_ -> ( initialModel, initialCmd )
         , view = view
         , update = update
