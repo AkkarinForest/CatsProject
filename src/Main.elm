@@ -2,9 +2,9 @@ module Main exposing (catsDecoder, main)
 
 import Browser exposing (Document)
 import Element as UI
-import Html exposing (Html, button, div, h1, img, text)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Element.Background as Background
+import Element.Input exposing (button)
+import Html exposing (Html)
 import Json.Decode as Json
 import Json.Decode.Pipeline as Json
 import RemoteData exposing (RemoteData(..), WebData)
@@ -18,7 +18,7 @@ import RemoteData.Http as Http
 
 
 type alias Model =
-    { catsData : WebData (List CatsData) }
+    { catsWebData : WebData (List CatsData) }
 
 
 type alias CatsData =
@@ -35,7 +35,7 @@ type alias CatsData =
 
 initialModel : Model
 initialModel =
-    { catsData = NotAsked }
+    { catsWebData = NotAsked }
 
 
 initialCmd : Cmd Msg
@@ -68,7 +68,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ClickedReload ->
-            case model.catsData of
+            case model.catsWebData of
                 NotAsked ->
                     ( model, Cmd.none )
 
@@ -84,9 +84,9 @@ update msg model =
                 Failure errorMessage ->
                     ( model, Cmd.none )
 
-        -- ( { model | catsData = Failure ("Reload Error:" ++ errorMessage) }, Cmd.none )
+        -- ( { model | catsWebData = Failure ("Reload Error:" ++ errorMessage) }, Cmd.none )
         GotPhotos response ->
-            ( { model | catsData = response }
+            ( { model | catsWebData = response }
             , Cmd.none
             )
 
@@ -94,14 +94,14 @@ update msg model =
 
 -- case photos of
 --     _ :: _ ->
---         ( { model | catsData = Loaded photos }
+--         ( { model | catsWebData = Loaded photos }
 --         , Cmd.none
 --         )
 --
 --     [] ->
---         ( { model | catsData = Failure "0 photos found" }, Cmd.none )
+--         ( { model | catsWebData = Failure "0 photos found" }, Cmd.none )
 -- GotPhotos (Err httpError) ->
---     ( { model | catsData = Failure "Cats api error" }, Cmd.none )
+--     ( { model | catsWebData = Failure "Cats api error" }, Cmd.none )
 -- ↑
 -- ########   VIEW   ########
 -- ↓
@@ -110,72 +110,86 @@ update msg model =
 view : Model -> Document Msg
 view model =
     { title = "Cat's Breeds"
-    , body = [ body ]
+    , body = [ body model ]
     }
 
 
-body =
-    UI.layout [] <|
-        UI.column []
-            [ header, page ]
+
+-- body : UI.Element msg
 
 
-header : UI.Element msg
+body : Model -> Html Msg
+body model =
+    UI.layout [] <| UI.column [] [ header, content model ]
+
+
+blue =
+    UI.rgb255 51 102 255
+
+
+pink =
+    UI.rgb255 255 102 255
+
+
+header : UI.Element Msg
 header =
-    UI.text "Cats 😻"
+    UI.el [ Background.color blue ] <| UI.text "Cats 😻"
 
 
-page : UI.Element msg
-page =
-    UI.el [] UI.none
+content : Model -> UI.Element Msg
+content model =
+    viewCatsWebData model
 
 
-body2 model =
-    div []
-        [ h1 [] [ text "Cats 😻" ]
-        , div [ class "content" ] <|
-            case model.catsData of
-                Success photos ->
-                    viewLoaded photos
+viewCatsWebData : Model -> UI.Element Msg
+viewCatsWebData model =
+    UI.el [ Background.color pink ] <|
+        case model.catsWebData of
+            Success catsData ->
+                viewCatsData catsData
 
-                NotAsked ->
-                    []
+            NotAsked ->
+                UI.none
 
-                Loading ->
-                    []
+            Loading ->
+                UI.none
 
-                Failure errorMessage ->
-                    [ text "Error: " ]
-        ]
+            Failure errorMessage ->
+                UI.text "Error: "
 
 
 
 -- [ text ("Error: " + errorMessage) ]
+-- viewCats : List CatsData -> List (Html Msg)
 
 
-viewLoaded : List CatsData -> List (Html Msg)
-viewLoaded catsData =
-    [ button
-        [ onClick ClickedReload ]
-        [ text "New Game" ]
-    , div [ id "thumbnails", class "med" ]
-        (List.map viewCatsPhoto catsData)
-    , div []
-        (List.map viewCatsBreed catsData)
-    ]
-
-
-viewCatsPhoto : CatsData -> Html Msg
-viewCatsPhoto catsData =
-    img
-        [ src catsData.url
+viewCatsData : List CatsData -> UI.Element Msg
+viewCatsData catsData =
+    UI.column []
+        [ button []
+            { onPress = Just ClickedReload
+            , label = UI.text "New Game"
+            }
+        , UI.row []
+            [ UI.column []
+                (List.map viewPhoto catsData)
+            , UI.column []
+                (List.map viewBreed catsData)
+            ]
         ]
-        []
 
 
-viewCatsBreed : CatsData -> Html Msg
-viewCatsBreed catsData =
-    text catsData.name
+viewPhoto : CatsData -> UI.Element msg
+viewPhoto photoData =
+    UI.image [ UI.width <| UI.px 200 ]
+        { src = photoData.url
+        , description = "cat's photograph"
+        }
+
+
+viewBreed : CatsData -> UI.Element msg
+viewBreed { name } =
+    UI.text name
 
 
 
