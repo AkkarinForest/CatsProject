@@ -6,6 +6,7 @@ import Element as UI
 import Element.Background as Background
 import Element.Input exposing (button)
 import Html exposing (Html)
+import Http
 import RemoteData exposing (RemoteData(..), WebData)
 
 
@@ -122,7 +123,30 @@ viewCatsWebData model =
                 UI.none
 
             Failure errorMessage ->
-                UI.text "Error: "
+                UI.text
+                    (viewHttpError errorMessage)
+
+
+
+-- viewHttpError : Http.Error -> String
+
+
+viewHttpError error =
+    case error of
+        Http.BadUrl str ->
+            "Bad URL error:" ++ str
+
+        Http.Timeout ->
+            "Timeout error"
+
+        Http.NetworkError ->
+            "Network error"
+
+        Http.BadStatus code ->
+            "Bad staus error with code " ++ String.fromInt code
+
+        Http.BadBody str ->
+            "Bad body error: " ++ str
 
 
 main : Program () Model Msg
