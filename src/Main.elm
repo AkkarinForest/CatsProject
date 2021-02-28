@@ -1,14 +1,12 @@
-module Main exposing (catsDecoder, main)
+module Main exposing (main)
 
 import Browser exposing (Document)
+import CatsData exposing (CatsData, fetchCats, viewCatsData)
 import Element as UI
 import Element.Background as Background
 import Element.Input exposing (button)
 import Html exposing (Html)
-import Json.Decode as Json
-import Json.Decode.Pipeline as Json
 import RemoteData exposing (RemoteData(..), WebData)
-import RemoteData.Http as Http
 
 
 
@@ -19,12 +17,6 @@ import RemoteData.Http as Http
 
 type alias Model =
     { catsWebData : WebData (List CatsData) }
-
-
-type alias CatsData =
-    { url : String
-    , name : String
-    }
 
 
 
@@ -40,17 +32,7 @@ initialModel =
 
 initialCmd : Cmd Msg
 initialCmd =
-    Http.get
-        "https://api.thecatapi.com/v1/breeds?limit=5"
-        GotPhotos
-        (Json.list catsDecoder)
-
-
-catsDecoder : Json.Decoder CatsData
-catsDecoder =
-    Json.succeed CatsData
-        |> Json.requiredAt [ "image", "url" ] Json.string
-        |> Json.required "name" Json.string
+    fetchCats GotPhotos
 
 
 
@@ -84,7 +66,6 @@ update msg model =
                 Failure errorMessage ->
                     ( model, Cmd.none )
 
-        -- ( { model | catsWebData = Failure ("Reload Error:" ++ errorMessage) }, Cmd.none )
         GotPhotos response ->
             ( { model | catsWebData = response }
             , Cmd.none
@@ -92,18 +73,8 @@ update msg model =
 
 
 
--- case photos of
---     _ :: _ ->
---         ( { model | catsWebData = Loaded photos }
---         , Cmd.none
---         )
---
---     [] ->
---         ( { model | catsWebData = Failure "0 photos found" }, Cmd.none )
--- GotPhotos (Err httpError) ->
---     ( { model | catsWebData = Failure "Cats api error" }, Cmd.none )
 -- ↑
--- ########   VIEW   ########
+-- ########  VIEW   ########
 -- ↓
 
 
@@ -112,10 +83,6 @@ view model =
     { title = "Cat's Breeds"
     , body = [ body model ]
     }
-
-
-
--- body : UI.Element msg
 
 
 body : Model -> Html Msg
@@ -146,7 +113,7 @@ viewCatsWebData model =
     UI.el [ Background.color pink ] <|
         case model.catsWebData of
             Success catsData ->
-                viewCatsData catsData
+                viewCatsData ClickedReload catsData
 
             NotAsked ->
                 UI.none
@@ -156,46 +123,6 @@ viewCatsWebData model =
 
             Failure errorMessage ->
                 UI.text "Error: "
-
-
-
--- [ text ("Error: " + errorMessage) ]
--- viewCats : List CatsData -> List (Html Msg)
-
-
-viewCatsData : List CatsData -> UI.Element Msg
-viewCatsData catsData =
-    UI.column []
-        [ button []
-            { onPress = Just ClickedReload
-            , label = UI.text "New Game"
-            }
-        , UI.row []
-            [ UI.column []
-                (List.map viewPhoto catsData)
-            , UI.column []
-                (List.map viewBreed catsData)
-            ]
-        ]
-
-
-viewPhoto : CatsData -> UI.Element msg
-viewPhoto photoData =
-    UI.image [ UI.width <| UI.px 200 ]
-        { src = photoData.url
-        , description = "cat's photograph"
-        }
-
-
-viewBreed : CatsData -> UI.Element msg
-viewBreed { name } =
-    UI.text name
-
-
-
--- ↑
--- ########   MAIN   ########
--- ↓
 
 
 main : Program () Model Msg
