@@ -4,10 +4,10 @@ import Browser exposing (Document)
 import CatsData exposing (CatsData, fetchCats, viewCatsData)
 import Element as UI
 import Element.Background as Background
-import Element.Input exposing (button)
+import Error exposing (viewHttpError)
 import Html exposing (Html)
-import Http
 import RemoteData exposing (RemoteData(..), WebData)
+import Theme exposing (..)
 
 
 
@@ -17,23 +17,9 @@ import RemoteData exposing (RemoteData(..), WebData)
 
 
 type alias Model =
-    { catsWebData : WebData (List CatsData) }
-
-
-
--- ↑
--- ########   INIT   ########
--- ↓
-
-
-initialModel : Model
-initialModel =
-    { catsWebData = NotAsked }
-
-
-initialCmd : Cmd Msg
-initialCmd =
-    fetchCats GotPhotos
+    { catsWebData : WebData (List CatsData)
+    , nothing : Nothing
+    }
 
 
 
@@ -64,7 +50,7 @@ update msg model =
                 Loading ->
                     ( model, Cmd.none )
 
-                Failure errorMessage ->
+                Failure _ ->
                     ( model, Cmd.none )
 
         GotPhotos response ->
@@ -89,14 +75,6 @@ view model =
 body : Model -> Html Msg
 body model =
     UI.layout [] <| UI.column [] [ header, content model ]
-
-
-blue =
-    UI.rgb255 51 102 255
-
-
-pink =
-    UI.rgb255 255 102 255
 
 
 header : UI.Element Msg
@@ -128,25 +106,19 @@ viewCatsWebData model =
 
 
 
--- viewHttpError : Http.Error -> String
+-- ↑
+-- ########   INIT   ########
+-- ↓
 
 
-viewHttpError error =
-    case error of
-        Http.BadUrl str ->
-            "Bad URL error:" ++ str
+initialModel : Model
+initialModel =
+    { catsWebData = NotAsked }
 
-        Http.Timeout ->
-            "Timeout error"
 
-        Http.NetworkError ->
-            "Network error"
-
-        Http.BadStatus code ->
-            "Bad staus error with code " ++ String.fromInt code
-
-        Http.BadBody str ->
-            "Bad body error: " ++ str
+initialCmd : Cmd Msg
+initialCmd =
+    fetchCats GotPhotos
 
 
 main : Program () Model Msg

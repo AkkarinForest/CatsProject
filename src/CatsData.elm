@@ -1,11 +1,10 @@
 module CatsData exposing (CatsData, fetchCats, viewCatsData)
 
 import Element as UI
-import Element.Background as Background
 import Element.Input exposing (button)
 import Json.Decode as Json
 import Json.Decode.Pipeline as Json
-import RemoteData exposing (RemoteData(..), WebData)
+import RemoteData exposing (WebData)
 import RemoteData.Http as Http
 
 
@@ -15,19 +14,24 @@ type alias CatsData =
     }
 
 
+catsApiUrl : String
+catsApiUrl =
+    "https://api.thecatapi.com/v1/breeds?limit=10"
+
+
+fetchCats : (WebData (List CatsData) -> msg) -> Cmd msg
+fetchCats msg =
+    Http.get
+        catsApiUrl
+        msg
+        (Json.list catsDecoder)
+
+
 catsDecoder : Json.Decoder CatsData
 catsDecoder =
     Json.succeed CatsData
         |> Json.requiredAt [ "image", "url" ] Json.string
         |> Json.required "name" Json.string
-
-
-fetchCats : (RemoteData.WebData (List CatsData) -> msg) -> Cmd msg
-fetchCats msg =
-    Http.get
-        "https://api.thecatapi.com/v1/breeds?limit=5"
-        msg
-        (Json.list catsDecoder)
 
 
 
