@@ -40,25 +40,19 @@ catsDecoder =
 -- ↓
 
 
-viewCatsData : msg -> List CatsData -> UI.Element msg
-viewCatsData msg catsData =
-    UI.column []
-        [ button []
-            { onPress = Just msg
-            , label = UI.text "New Game"
-            }
-        , UI.row []
-            [ UI.column []
-                (List.map viewPhoto catsData)
-            , UI.column []
-                (List.map viewBreed catsData)
-            ]
+viewCatsData : List CatsData -> UI.Element msg
+viewCatsData catsData =
+    UI.row []
+        [ UI.column []
+            (List.map viewPhoto catsData)
+        , UI.column [ UI.spacing 200 ]
+            (List.map viewBreed catsData)
         ]
 
 
 viewPhoto : CatsData -> UI.Element msg
 viewPhoto photoData =
-    UI.image [ UI.width <| UI.px 200 ]
+    UI.image [ UI.height <| UI.px 200 ]
         { src = photoData.url
         , description = "cat's photograph"
         }

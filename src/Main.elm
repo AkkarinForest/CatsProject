@@ -1,11 +1,14 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import CatsData exposing (CatsData, fetchCats, viewCatsData)
+import CatsData exposing (..)
 import Element as UI
 import Element.Background as Background
 import Error exposing (viewHttpError)
 import Html exposing (Html)
+import List exposing (take)
+import Random exposing (generate)
+import Random.List exposing (shuffle)
 import RemoteData exposing (RemoteData(..), WebData)
 import Theme exposing (..)
 
@@ -17,8 +20,8 @@ import Theme exposing (..)
 
 
 type alias Model =
-    { catsWebData : WebData (List CatsData)
-    , nothing : Nothing
+    { catsData : List CatsData
+    , nothing : Int
     }
 
 
@@ -29,32 +32,34 @@ type alias Model =
 
 
 type Msg
-    = ClickedReload
-    | GotPhotos (WebData (List CatsData))
+    = GotPhotos (WebData (List CatsData))
+    | NewGame (List CatsData)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ClickedReload ->
-            case model.catsWebData of
+        GotPhotos response ->
+            case response of
                 NotAsked ->
-                    ( model, Cmd.none )
-
-                Success (_ :: _) ->
-                    ( model, Cmd.none )
-
-                Success [] ->
                     ( model, Cmd.none )
 
                 Loading ->
                     ( model, Cmd.none )
 
+                Success [] ->
+                    ( model, Cmd.none )
+
+                Success catsData ->
+                    ( model
+                    , generate NewGame <| shuffle catsData
+                    )
+
                 Failure _ ->
                     ( model, Cmd.none )
 
-        GotPhotos response ->
-            ( { model | catsWebData = response }
+        NewGame catsData ->
+            ( { model | catsData = take 5 catsData }
             , Cmd.none
             )
 
@@ -74,7 +79,7 @@ view model =
 
 body : Model -> Html Msg
 body model =
-    UI.layout [] <| UI.column [] [ header, content model ]
+    UI.layout [ Background.color black ] <| UI.column [] [ header, content model ]
 
 
 header : UI.Element Msg
@@ -84,25 +89,7 @@ header =
 
 content : Model -> UI.Element Msg
 content model =
-    viewCatsWebData model
-
-
-viewCatsWebData : Model -> UI.Element Msg
-viewCatsWebData model =
-    UI.el [ Background.color pink ] <|
-        case model.catsWebData of
-            Success catsData ->
-                viewCatsData ClickedReload catsData
-
-            NotAsked ->
-                UI.none
-
-            Loading ->
-                UI.none
-
-            Failure errorMessage ->
-                UI.text
-                    (viewHttpError errorMessage)
+    UI.el [ Background.color pink ] <| viewCatsData model.catsData
 
 
 
@@ -113,7 +100,7 @@ viewCatsWebData model =
 
 initialModel : Model
 initialModel =
-    { catsWebData = NotAsked }
+    { catsData = [], nothing = 1 }
 
 
 initialCmd : Cmd Msg
