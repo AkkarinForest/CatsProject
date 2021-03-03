@@ -1,6 +1,7 @@
 module Theme exposing (..)
 
 import Element as UI
+import Element.Font as Font
 
 
 blue : UI.Color
@@ -15,3 +16,16 @@ pink =
 
 black =
     UI.rgb255 0 0 0
+
+
+defaultFonts =
+    Font.family
+        [ Font.typeface "Roboto"
+        , Font.monospace
+        ]
+
+
+sizeLimits min max =
+    UI.fill
+        |> UI.maximum max
+        |> UI.minimum min

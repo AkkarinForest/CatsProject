@@ -16,6 +16,7 @@
             "elm-community/random-extra": "3.1.0",
             "krisajenkins/remotedata": "6.0.1",
             "mdgriffith/elm-ui": "1.1.8",
+            "norpan/elm-html5-drag-drop": "3.1.4",
             "ohanhi/remotedata-http": "4.0.0"
         },
         "indirect": {

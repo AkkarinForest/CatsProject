@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "app.js",
   "dependencies": {
+    "@kalutheo/uie": "0.0.6",
     "elm": "^0.19.1-5",
     "elm-live": "^4.0.2"
   },
