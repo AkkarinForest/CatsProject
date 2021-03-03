@@ -18,6 +18,10 @@ black =
     UI.rgb255 0 0 0
 
 
+white =
+    UI.rgb255 255 255 255
+
+
 defaultFonts =
     Font.family
         [ Font.typeface "Roboto"

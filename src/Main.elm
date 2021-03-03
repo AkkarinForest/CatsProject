@@ -8,7 +8,7 @@ import Element.Font as Font
 import Error exposing (viewHttpError)
 import Html exposing (Html)
 import Html5.DragDrop as DragDrop
-import List exposing (take)
+import List exposing (map, take)
 import Random exposing (generate)
 import Random.List exposing (shuffle)
 import RemoteData exposing (RemoteData(..), WebData)
@@ -27,6 +27,7 @@ import Theme exposing (..)
 type Msg
     = GotPhotos (WebData (List CatsData))
     | NewGame (List CatsData)
+    | DragDropMsg (DragDrop.Msg DragId DropId)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -55,6 +56,13 @@ update msg model =
             ( { model | catsData = take 5 catsData }
             , Cmd.none
             )
+
+        DragDropMsg msg_ ->
+            let
+                ( model_, result ) =
+                    DragDrop.update msg_ model.dragDrop
+            in
+            ( { model | dragDrop = model_ }, Cmd.none )
 
 
 
@@ -94,7 +102,20 @@ content : Model -> UI.Element Msg
 content model =
     UI.column
         [ UI.centerX, Background.color pink, UI.width (UI.minimum 600 UI.shrink) ]
-        [ viewCatsData model.catsData ]
+        [ viewCatsData model.catsData, viewmock ]
+
+
+viewmock =
+    UI.row [ Background.color black ]
+        [ UI.column [ Background.color blue ]
+            [ UI.el (map UI.htmlAttribute (DragDrop.draggable DragDropMsg 2))
+                (UI.text "dwa")
+            , UI.el
+                (map UI.htmlAttribute (DragDrop.draggable DragDropMsg 1))
+                (UI.text "jeden")
+            ]
+        , UI.column [ Background.color white ] []
+        ]
 
 
 
