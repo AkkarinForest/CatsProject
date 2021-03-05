@@ -4,6 +4,7 @@ import Browser exposing (Document)
 import CatsData exposing (..)
 import Element as UI
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Error exposing (viewHttpError)
 import Html exposing (Html)
@@ -27,7 +28,7 @@ import Theme exposing (..)
 type Msg
     = GotPhotos (WebData (List CatsData))
     | NewGame (List CatsData)
-    | DragDropMsg (DragDrop.Msg DragId DropId)
+    | DragDropMsg CatsData.DragDropMsg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -53,7 +54,7 @@ update msg model =
                     ( model, Cmd.none )
 
         NewGame catsData ->
-            ( { model | catsData = take 5 catsData }
+            ( { model | catsGame = startGame catsData }
             , Cmd.none
             )
 
@@ -102,19 +103,9 @@ content : Model -> UI.Element Msg
 content model =
     UI.column
         [ UI.centerX, Background.color pink, UI.width (UI.minimum 600 UI.shrink) ]
-        [ viewCatsData model.catsData, viewmock ]
+        [ viewCatsData DragDropMsg model.catsGame
 
-
-viewmock =
-    UI.row [ Background.color black ]
-        [ UI.column [ Background.color blue ]
-            [ UI.el (map UI.htmlAttribute (DragDrop.draggable DragDropMsg 2))
-                (UI.text "dwa")
-            , UI.el
-                (map UI.htmlAttribute (DragDrop.draggable DragDropMsg 1))
-                (UI.text "jeden")
-            ]
-        , UI.column [ Background.color white ] []
+        -- , viewmock
         ]
 
 
@@ -124,23 +115,15 @@ viewmock =
 -- ↓
 
 
-type alias DragId =
-    Int
-
-
-type alias DropId =
-    Int
-
-
 type alias Model =
-    { catsData : List CatsData
-    , dragDrop : DragDrop.Model DragId DropId
+    { catsGame : CatsGame
+    , dragDrop : DragDropModel
     }
 
 
 initialModel : Model
 initialModel =
-    { catsData = []
+    { catsGame = []
     , dragDrop = DragDrop.init
     }
 
