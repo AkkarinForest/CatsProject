@@ -41,7 +41,7 @@ catsDecoder =
 
 
 -- ↑
--- ########  VIEW   ########
+-- ########  GAME   ########
 -- ↓
 
 
@@ -51,21 +51,26 @@ type alias CatsData =
     }
 
 
-type alias CatGameData =
+type alias CatGameDatum =
     { url : String
-    , name : String
-    , position : Position
+    , breedName : String
+    , breedPosition : Position
     }
 
 
 type alias CatsGame =
-    List CatGameData
+    List CatGameDatum
 
 
 type Position
     = One
     | Two
     | Three
+
+
+positions : List Position
+positions =
+    [ One, Two, Three ]
 
 
 startGame : List CatsData -> CatsGame
@@ -75,15 +80,17 @@ startGame catsData =
         selectedCats =
             take 3 catsData
 
-        positions : List Position
-        positions =
-            [ One, Two, Three ]
-
-        zipper : CatsData -> Position -> CatGameData
+        zipper : CatsData -> Position -> CatGameDatum
         zipper cat position =
-            { url = cat.url, name = cat.name, position = position }
+            { url = cat.url, breedName = cat.name, breedPosition = position }
     in
     map2 zipper selectedCats positions
+
+
+
+-- ↑
+-- ########  dragging   ########
+-- ↓
 
 
 type alias DragId =
@@ -102,17 +109,23 @@ type alias DragDropMsg =
     DragDrop.Msg DragId DropId
 
 
+
+-- ↑
+-- ########  GAME   ########
+-- ↓
+
+
 viewCatsData : (DragDropMsg -> msg) -> CatsGame -> UI.Element msg
-viewCatsData msg catsData =
+viewCatsData msg catsGame =
     UI.row []
         [ UI.column []
-            (List.map viewPhoto catsData)
+            (List.map viewPhoto catsGame)
         , UI.column [ UI.spacing 200 ]
-            (List.map (viewBreed msg) catsData)
+            (viewBreeds msg catsGame)
         ]
 
 
-viewPhoto : CatGameData -> UI.Element msg
+viewPhoto : CatGameDatum -> UI.Element msg
 viewPhoto { url } =
     UI.image [ UI.height <| UI.px 200 ]
         { src = url
@@ -120,11 +133,22 @@ viewPhoto { url } =
         }
 
 
-viewBreed : (DragDropMsg -> msg) -> CatGameData -> UI.Element msg
-viewBreed msg { name, position } =
+viewBreeds : (DragDropMsg -> msg) -> CatsGame -> List (UI.Element msg)
+viewBreeds msg catsGame =
+    List.map (viewBreedContainer msg) catsGame
+
+
+viewBreedContainer : (DragDropMsg -> msg) -> CatGameDatum -> UI.Element msg
+viewBreedContainer msg catGameDatum =
+    UI.el []
+        (viewBreed msg catGameDatum)
+
+
+viewBreed : (DragDropMsg -> msg) -> CatGameDatum -> UI.Element msg
+viewBreed msg { breedName, breedPosition } =
     UI.el
         (map UI.htmlAttribute (DragDrop.draggable msg 1))
-        (UI.text name)
+        (UI.text breedName)
 
 
 viewmock msg =
