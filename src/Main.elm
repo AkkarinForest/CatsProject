@@ -4,6 +4,7 @@ import Browser exposing (Document)
 import CatsData exposing (..)
 import Element as UI
 import Element.Background as Background
+import Element.Font as Font
 import Error exposing (viewHttpError)
 import Html exposing (Html)
 import List exposing (take)
@@ -21,7 +22,6 @@ import Theme exposing (..)
 
 type alias Model =
     { catsData : List CatsData
-    , nothing : Int
     }
 
 
@@ -79,17 +79,29 @@ view model =
 
 body : Model -> Html Msg
 body model =
-    UI.layout [ Background.color black ] <| UI.column [] [ header, content model ]
+    UI.layout
+        [ UI.width UI.fill, Background.color black, defaultFonts ]
+        (UI.column
+            [ UI.width UI.fill ]
+            [ header, content model ]
+        )
 
 
 header : UI.Element Msg
 header =
-    UI.el [ Background.color blue ] <| UI.text "Cats 😻"
+    UI.el
+        [ UI.width UI.fill, UI.height (UI.px 100), Background.color blue ]
+        (UI.el
+            [ UI.centerX, UI.centerY, Font.size 30 ]
+            (UI.text "Cats 😻")
+        )
 
 
 content : Model -> UI.Element Msg
 content model =
-    UI.el [ Background.color pink ] <| viewCatsData model.catsData
+    UI.column
+        [ UI.centerX, Background.color pink, UI.width (UI.minimum 600 UI.shrink) ]
+        [ viewCatsData model.catsData ]
 
 
 
@@ -100,7 +112,8 @@ content model =
 
 initialModel : Model
 initialModel =
-    { catsData = [], nothing = 1 }
+    { catsData = []
+    }
 
 
 initialCmd : Cmd Msg
