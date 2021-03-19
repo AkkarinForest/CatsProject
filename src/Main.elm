@@ -1,8 +1,15 @@
+-- ↑
+-- ~~~~~~~~   Imports  ~~~~~~~~
+-- ↓
+
+
 module Main exposing (main)
 
 import Browser exposing (Document)
+import Dict exposing (values)
 import Element as UI
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Error exposing (viewHttpError)
 import Html exposing (Html)
@@ -10,7 +17,7 @@ import Html.Attributes exposing (draggable)
 import Html.Events as Events
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
-import List exposing (take)
+import List exposing (head, tail, take)
 import Random exposing (generate)
 import Random.List exposing (shuffle)
 import RemoteData exposing (RemoteData(..), WebData)
@@ -19,6 +26,7 @@ import Theme exposing (..)
 
 
 
+-- ↑
 -- ⇑
 -- ########   MAIN   ########
 -- ⇓
@@ -28,15 +36,9 @@ import Theme exposing (..)
 
 
 type alias Model =
-    { catsData : List CatsData
-    , beingDragged : Maybe String
-    , draggableItems : List String
-    , items : DropableSpots
+    { beingDragged : Maybe BreedName
+    , catsGame : Game
     }
-
-
-type alias DropableSpots =
-    { first : String, second : String }
 
 
 
@@ -48,10 +50,10 @@ type alias DropableSpots =
 type Msg
     = GotPhotos (WebData (List CatsData))
     | NewGame (List CatsData)
-    | Drag String
+    | Drag BreedName
     | DragEnd
     | DragOver
-    | Drop DroppedInMsg
+    | Drop Photo
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -77,7 +79,30 @@ update msg model =
                     ( model, Cmd.none )
 
         NewGame catsData ->
-            ( { model | catsData = take 3 catsData }
+            let
+                maybeCat1 =
+                    head catsData
+
+                maybeCat2 =
+                    tail catsData |> Maybe.andThen head
+
+                maybeCat3 =
+                    tail catsData |> Maybe.andThen tail |> Maybe.andThen head
+
+                catsGame =
+                    case ( maybeCat1, maybeCat2, maybeCat3 ) of
+                        ( Just cat1, Just cat2, Just cat3 ) ->
+                            [ { photo = cat1.url, breedName = cat1.name }
+                            , { photo = cat2.url, breedName = cat2.name }
+                            , { photo = cat3.url, breedName = cat3.name }
+                            ]
+
+                        ( _, _, _ ) ->
+                            []
+            in
+            ( { model
+                | catsGame = catsGame
+              }
             , Cmd.none
             )
 
@@ -87,6 +112,10 @@ update msg model =
             )
 
         DragEnd ->
+            let
+                beingDragged =
+                    model.beingDragged
+            in
             ( { model | beingDragged = Nothing }
             , Cmd.none
             )
@@ -94,19 +123,26 @@ update msg model =
         DragOver ->
             ( model, Cmd.none )
 
-        Drop droppedInMsg ->
+        Drop newPosition ->
             case model.beingDragged of
                 Nothing ->
                     ( model, Cmd.none )
 
-                Just item ->
+                Just draggedItem ->
                     let
-                        newItems =
-                            updateDropped droppedInMsg model.items item
+                        newCatsGame =
+                            updateDropped draggedItem newPosition model.catsGame
+
+                        --
+                        -- oldCatsGame =
+                        --     model.catsGame
+                        --
+                        -- newCatsGame =
+                        --     { oldCatsGame | breedNames = newBreedNAmes }
                     in
                     ( { model
                         | beingDragged = Nothing
-                        , items = newItems
+                        , catsGame = newCatsGame
                       }
                     , Cmd.none
                     )
@@ -149,7 +185,7 @@ content : Model -> UI.Element Msg
 content model =
     UI.column
         [ UI.centerX, Background.color pink, UI.width (UI.minimum 600 UI.shrink) ]
-        [ viewCatsData model.catsData ]
+        [ viewCatsGame model.catsGame ]
 
 
 
@@ -160,12 +196,8 @@ content model =
 
 initialModel : Model
 initialModel =
-    { catsData = []
-    , beingDragged = Nothing
-    , draggableItems =
-        List.range 1 5
-            |> List.map Debug.toString
-    , items = { first = "7", second = "6" }
+    { beingDragged = Nothing
+    , catsGame = []
     }
 
 
@@ -190,39 +222,74 @@ main =
 -- ######## DRAGING ########
 -- ⇓
 -- ↑
--- ~~~~~~~~  UPDATE  ~~~~~~~~
+-- ~~~~~~~~   MODEL  ~~~~~~~~
 -- ↓
 
 
-type DroppedInMsg
+type Position
     = First
     | Second
-
-
-updateDropped : DroppedInMsg -> DropableSpots -> String -> DropableSpots
-updateDropped msg spots item =
-    case msg of
-        First ->
-            { spots | first = item }
-
-        Second ->
-            { spots | second = item }
+    | Third
 
 
 
 -- ↑
--- ~~~~~~~~  VIEW   ~~~~~~~~
+-- ~~~~~~~~  UPDATE  ~~~~~~~~
 -- ↓
 
 
-viewDraggableItem : UI.Element Msg -> UI.Element Msg
+updateDropped : BreedName -> Photo -> Game -> Game
+updateDropped draggedItem droppedOnPhoto catsGame =
+    let
+        maybeDraggedCat =
+            List.filter (\cat -> cat.breedName == draggedItem) catsGame |> head
+
+        maybeDroppedOnCat =
+            List.filter (\cat -> cat.photo == droppedOnPhoto) catsGame |> head
+
+        updateBreedName breedName photo cat =
+            if cat.photo == photo then
+                { cat | breedName = breedName }
+
+            else
+                cat
+    in
+    case ( maybeDraggedCat, maybeDroppedOnCat ) of
+        ( Just draggedCat, Just droppedOnCat ) ->
+            catsGame
+                |> List.map (updateBreedName draggedItem droppedOnPhoto)
+                |> List.map (updateBreedName droppedOnCat.breedName draggedCat.photo)
+
+        ( _, _ ) ->
+            catsGame
+
+
+
+-- ↑
+-- ~~~~~~~~   VIEW   ~~~~~~~~
+-- ↓
+
+
+viewDraggableItem : { a | breedName : BreedName } -> UI.Element Msg
 viewDraggableItem item =
     UI.el
         [ UI.htmlAttribute (draggable "true")
-        , onDragStart <| Drag "item"
+        , onDragStart <| Drag item.breedName
         , onDragEnd DragEnd
         ]
-        item
+        (viewBreed item.breedName)
+
+
+viewDroppableArea : { a | photo : String } -> UI.Element Msg -> UI.Element Msg
+viewDroppableArea { photo } elem =
+    UI.el
+        [ UI.height <| UI.px 80
+        , UI.width <| UI.px 250
+        , Background.color blue
+        , onDragOver DragOver
+        , onDrop <| Drop photo
+        ]
+        elem
 
 
 onDragStart : msg -> UI.Attribute msg
@@ -232,18 +299,21 @@ onDragStart msg =
         |> UI.htmlAttribute
 
 
+onDragEnd : msg -> UI.Attribute msg
 onDragEnd msg =
     Decode.succeed msg
         |> Events.on "dragend"
         |> UI.htmlAttribute
 
 
+onDragOver : msg -> UI.Attribute msg
 onDragOver msg =
     Decode.succeed ( msg, True )
         |> Events.preventDefaultOn "dragover"
         |> UI.htmlAttribute
 
 
+onDrop : msg -> UI.Attribute msg
 onDrop msg =
     Decode.succeed ( msg, True )
         |> Events.preventDefaultOn "drop"
@@ -251,11 +321,12 @@ onDrop msg =
 
 
 
+-- ↑
 -- ⇑
 -- ######## CATS DATA ########
 -- ⇓
 -- ↑
--- ~~~~~~~~  INIT   ~~~~~~~~
+-- ~~~~~~~~   MODEL  ~~~~~~~~
 -- ↓
 
 
@@ -263,6 +334,20 @@ type alias CatsData =
     { url : String
     , name : String
     }
+
+
+catsDecoder : Decode.Decoder CatsData
+catsDecoder =
+    Decode.succeed CatsData
+        |> Decode.requiredAt [ "image", "url" ] Decode.string
+        |> Decode.required "name" Decode.string
+
+
+
+-- ↑
+-- ↑
+-- ~~~~~~~~   INIT   ~~~~~~~~
+-- ↓
 
 
 catsApiUrl : String
@@ -278,40 +363,81 @@ fetchCats msg =
         (Decode.list catsDecoder)
 
 
-catsDecoder : Decode.Decoder CatsData
-catsDecoder =
-    Decode.succeed CatsData
-        |> Decode.requiredAt [ "image", "url" ] Decode.string
-        |> Decode.required "name" Decode.string
+
+-- ↑
+-- ⇑
+-- ########   GAME   ########
+-- ⇓
+-- ↑
+-- ~~~~~~~~   MODEL  ~~~~~~~~
+-- ↓
+
+
+type alias BreedName =
+    String
+
+
+type alias Photo =
+    String
+
+
+
+--
+--
+-- type alias BreedNamePosition =
+--     { breedName : BreedName
+--     , position : Position
+--     }
+--
+--
+-- type alias PhotoPosition =
+--     { photoUrl : String
+--     , position : Position
+--     }
+--
+-- type alias Game =
+--     { photos : List PhotoPosition, breedNames : List BreedNamePosition }
+
+
+type alias Game =
+    List
+        { photo : Photo
+        , breedName : BreedName
+        }
 
 
 
 -- ↑
--- ~~~~~~~~  VIEW   ~~~~~~~~
+-- ~~~~~~~~   VIEW   ~~~~~~~~
 -- ↓
 
 
-viewCatsData : List CatsData -> UI.Element Msg
-viewCatsData catsData =
+viewCatsGame : Game -> UI.Element Msg
+viewCatsGame game =
+    UI.column []
+        (List.map viewGameRow game)
+
+
+viewGameRow cat =
     UI.row []
-        [ UI.column []
-            (List.map viewPhoto catsData)
-        , UI.column [ UI.spacing 200 ]
-            (catsData
-                |> List.map viewBreed
-                |> List.map viewDraggableItem
-            )
+        [ viewPhoto cat.photo
+        , cat |> viewDraggableItem |> viewDroppableArea cat
         ]
 
 
-viewPhoto : CatsData -> UI.Element msg
-viewPhoto photoData =
+viewPhoto : Photo -> UI.Element msg
+viewPhoto url =
     UI.image [ UI.height <| UI.px 200 ]
-        { src = photoData.url
+        { src = url
         , description = "cat's photograph"
         }
 
 
-viewBreed : CatsData -> UI.Element msg
-viewBreed { name } =
-    UI.text name
+viewBreed : BreedName -> UI.Element msg
+viewBreed breedName =
+    UI.text breedName
+
+
+
+-- ↑
+-- ⇑
