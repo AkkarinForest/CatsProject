@@ -6,18 +6,17 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import Dict exposing (values)
 import Element as UI
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
-import Error exposing (viewHttpError)
+import Element.Input exposing (button)
+import Error exposing (Error, viewHttpError)
 import Html exposing (Html)
 import Html.Attributes exposing (draggable)
 import Html.Events as Events
 import Json.Decode as Decode
 import Json.Decode.Pipeline as Decode
-import List exposing (head, tail, take)
+import List exposing (head, take)
 import Random exposing (generate)
 import Random.List exposing (shuffle)
 import RemoteData exposing (RemoteData(..), WebData)
@@ -38,6 +37,7 @@ import Theme exposing (..)
 type alias Model =
     { beingDragged : Maybe BreedName
     , catsGame : Game
+    , error : Maybe Error
     }
 
 
@@ -50,6 +50,7 @@ type alias Model =
 type Msg
     = GotPhotos (WebData (List CatsData))
     | NewGame (List CatsData)
+    | SubmitGame
     | Drag BreedName
     | DragEnd
     | DragOver
@@ -75,36 +76,18 @@ update msg model =
                     , generate NewGame <| shuffle catsData
                     )
 
-                Failure _ ->
-                    ( model, Cmd.none )
+                Failure error ->
+                    ( { model | error = Just error }, Cmd.none )
 
         NewGame catsData ->
-            let
-                maybeCat1 =
-                    head catsData
-
-                maybeCat2 =
-                    tail catsData |> Maybe.andThen head
-
-                maybeCat3 =
-                    tail catsData |> Maybe.andThen tail |> Maybe.andThen head
-
-                catsGame =
-                    case ( maybeCat1, maybeCat2, maybeCat3 ) of
-                        ( Just cat1, Just cat2, Just cat3 ) ->
-                            [ { photo = cat1.url, breedName = cat1.name }
-                            , { photo = cat2.url, breedName = cat2.name }
-                            , { photo = cat3.url, breedName = cat3.name }
-                            ]
-
-                        ( _, _, _ ) ->
-                            []
-            in
             ( { model
-                | catsGame = catsGame
+                | catsGame = take 4 catsData
               }
             , Cmd.none
             )
+
+        SubmitGame ->
+            ( model, Cmd.none )
 
         Drag item ->
             ( { model | beingDragged = Just item }
@@ -112,10 +95,6 @@ update msg model =
             )
 
         DragEnd ->
-            let
-                beingDragged =
-                    model.beingDragged
-            in
             ( { model | beingDragged = Nothing }
             , Cmd.none
             )
@@ -129,20 +108,9 @@ update msg model =
                     ( model, Cmd.none )
 
                 Just draggedItem ->
-                    let
-                        newCatsGame =
-                            updateDropped draggedItem newPosition model.catsGame
-
-                        --
-                        -- oldCatsGame =
-                        --     model.catsGame
-                        --
-                        -- newCatsGame =
-                        --     { oldCatsGame | breedNames = newBreedNAmes }
-                    in
                     ( { model
                         | beingDragged = Nothing
-                        , catsGame = newCatsGame
+                        , catsGame = updateDropped draggedItem newPosition model.catsGame
                       }
                     , Cmd.none
                     )
@@ -185,7 +153,9 @@ content : Model -> UI.Element Msg
 content model =
     UI.column
         [ UI.centerX, Background.color pink, UI.width (UI.minimum 600 UI.shrink) ]
-        [ viewCatsGame model.catsGame ]
+        [ viewHttpError model.error
+        , viewCatsGame model.catsGame
+        ]
 
 
 
@@ -198,6 +168,7 @@ initialModel : Model
 initialModel =
     { beingDragged = Nothing
     , catsGame = []
+    , error = Nothing
     }
 
 
@@ -221,18 +192,6 @@ main =
 -- ⇑
 -- ######## DRAGING ########
 -- ⇓
--- ↑
--- ~~~~~~~~   MODEL  ~~~~~~~~
--- ↓
-
-
-type Position
-    = First
-    | Second
-    | Third
-
-
-
 -- ↑
 -- ~~~~~~~~  UPDATE  ~~~~~~~~
 -- ↓
@@ -331,8 +290,8 @@ onDrop msg =
 
 
 type alias CatsData =
-    { url : String
-    , name : String
+    { photo : Photo
+    , breedName : BreedName
     }
 
 
@@ -381,24 +340,6 @@ type alias Photo =
     String
 
 
-
---
---
--- type alias BreedNamePosition =
---     { breedName : BreedName
---     , position : Position
---     }
---
---
--- type alias PhotoPosition =
---     { photoUrl : String
---     , position : Position
---     }
---
--- type alias Game =
---     { photos : List PhotoPosition, breedNames : List BreedNamePosition }
-
-
 type alias Game =
     List
         { photo : Photo
@@ -415,7 +356,13 @@ type alias Game =
 viewCatsGame : Game -> UI.Element Msg
 viewCatsGame game =
     UI.column []
-        (List.map viewGameRow game)
+        [ UI.column []
+            (List.map viewGameRow game)
+        , button []
+            { label = UI.text "Ready!"
+            , onPress = Just SubmitGame
+            }
+        ]
 
 
 viewGameRow cat =
