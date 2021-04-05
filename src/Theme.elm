@@ -29,3 +29,7 @@ sizeLimits min max =
     UI.fill
         |> UI.maximum max
         |> UI.minimum min
+
+
+smallFont =
+    Font.size 12

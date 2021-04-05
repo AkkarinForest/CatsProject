@@ -1,10 +1,26 @@
-module Error exposing (viewHttpError)
+module Error exposing (Error, viewHttpError)
 
+import Element as UI
 import Http
+import Theme exposing (..)
 
 
-viewHttpError : Http.Error -> String
-viewHttpError error =
+type alias Error =
+    Http.Error
+
+
+viewHttpError maybeError =
+    case maybeError of
+        Nothing ->
+            UI.text ""
+
+        Just error ->
+            UI.el [ UI.height <| UI.px 200, UI.width <| UI.px 800, smallFont ]
+                (UI.text <| readHttpError error)
+
+
+readHttpError : Http.Error -> String
+readHttpError error =
     case error of
         Http.BadUrl str ->
             "Bad URL error:" ++ str
